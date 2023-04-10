@@ -1,9 +1,8 @@
 import express, { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+
+import prisma from '../lib/prisma';
 
 const router = express.Router();
-
-const prisma = new PrismaClient();
 
 router.get('/', async (req: Request, res: Response) => {
   const users = await prisma.user.findMany();
@@ -12,13 +11,14 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { firstname, lastname, email, avatar } = req.body;
+    const { firstname, lastname, email, avatar, password } = req.body;
     const user = await prisma.user.create({
       data: {
         firstname,
         lastname,
         email,
         avatar,
+        password,
       },
     });
     res.json({
@@ -64,6 +64,25 @@ router.put('/:id', async (req: Request, res: Response) => {
     res.send({ data: updatedUser });
   } catch (error) {
     res.send({ error });
+  }
+});
+
+router.post('/login', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    const user = await prisma.user.findUnique({
+      where: {
+        email,
+      },
+    });
+
+    if (!user) res.json({ error: 'No user found' });
+
+    res.json({
+      data: user,
+    });
+  } catch (error) {
+    res.send(error);
   }
 });
 
