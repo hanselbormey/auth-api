@@ -1,31 +1,43 @@
 import express, { Request, Response } from 'express';
-
 import prisma from '../lib/prisma';
 
 const router = express.Router();
 
 router.get('/', async (req: Request, res: Response) => {
-  const users = await prisma.user.findMany();
-  res.json({ users });
+  try {
+    const users = await prisma.user.findMany();
+    res.json({ users });
+  } catch (error) {
+    res.status(500).json(error);
+  }
+
 });
 
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { firstname, lastname, email, avatar, password } = req.body;
+    const { fullname, email, picture, password } = req.body;
     const user = await prisma.user.create({
       data: {
-        firstname,
-        lastname,
+        fullname,
         email,
-        avatar,
-        password,
+        picture
       },
     });
+
+    if (!user) {
+      res.status(400).send({ error: 'The user could not be created' });
+    }
+
     res.json({
-      data: user,
+      data: {
+        id: user.id,
+        fullname: user.fullname,
+        email: user.email,
+        picture: user.picture,
+      },
     });
-  } catch (error) {
-    res.send(error);
+  } catch (error: any) {
+    res.status(500).send({ error: error.message });
   }
 });
 
@@ -47,7 +59,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
 
 router.put('/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { firstname, lastname, email, avatar } = req.body;
+  const { fullname, email, picture } = req.body;
 
   try {
     const updatedUser = await prisma.user.update({
@@ -55,34 +67,14 @@ router.put('/:id', async (req: Request, res: Response) => {
         id,
       },
       data: {
-        firstname,
-        lastname,
+        fullname,
         email,
-        avatar,
+        picture,
       },
     });
     res.send({ data: updatedUser });
   } catch (error) {
     res.send({ error });
-  }
-});
-
-router.post('/login', async (req: Request, res: Response) => {
-  try {
-    const { email } = req.body;
-    const user = await prisma.user.findUnique({
-      where: {
-        email,
-      },
-    });
-
-    if (!user) res.json({ error: 'No user found' });
-
-    res.json({
-      data: user,
-    });
-  } catch (error) {
-    res.send(error);
   }
 });
 
